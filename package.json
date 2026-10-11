@@ -1,7 +1,7 @@
 {
-  "name": "impresscms-easel",
+  "name": "itheme",
   "version": "1.0.0",
-  "description": "Template repository for building ImpressCMS themes with Vite",
+  "description": "The original iTheme theme for ImpressCMS, built with the Easel pipeline",
   "private": true,
   "type": "module",
   "license": "MIT",
