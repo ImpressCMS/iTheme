@@ -40,7 +40,8 @@ Every pull request is based on the branch of the previous one, so merge them in 
 | 4 | `migrate/04-front-end-layout` | Port `theme.html` and the block zone partials, link the bundles, replace the template skeleton | [#5](https://github.com/ImpressCMS/iTheme/pull/5) |
 | 5 | `migrate/05-admin-and-site-closed` | Port `theme_admin.html`, its partial and the site closed template | [#6](https://github.com/ImpressCMS/iTheme/pull/6) |
 | 6 | `migrate/06-docs` | Rewrite the README, finish this logbook | [#7](https://github.com/ImpressCMS/iTheme/pull/7) |
-| 7 | `migrate/07-verification` | Install on a test site, compare with the original, log the findings | this pull request |
+| 7 | `migrate/07-verification` | Install on a test site, compare with the original, log the findings | [#8](https://github.com/ImpressCMS/iTheme/pull/8) |
+| 8 | `migrate/08-small-fixes` | Add `lang` to `<html>`, list the core findings in `axeKnown` | this pull request |
 
 ## Step 1: baseline
 
@@ -337,3 +338,36 @@ they belong in `axeKnown` in `tests/pages/config.mjs` with a reason, or in a tem
    findings of the migration. This run was done only after it, so the claim "these are in the original" rests on the
    markup and the CSS, not on a baseline run.
 4. Chrome is not installed everywhere; Edge works (`ICMS_TEST_BROWSER=msedge`).
+
+## Step 8: small fixes after the verification
+
+**Goal:** remove the findings of step 7 that have a small, safe fix or that do not belong to the theme.
+
+**What was done**
+
+- `src/theme.html` and `src/theme_admin.html`: `lang="<{$icms_langcode}>"` added to `<html>`, next to the existing
+  `xml:lang`. This is the markup for XHTML 1.x documents served as HTML, and it fixes the axe rule `html-has-lang`.
+  Nothing else in the templates changed.
+- `tests/pages/config.mjs`: `axeKnown` lists the findings that come from the core and not from the theme, each with a
+  reason: unlabelled fields of the login block, the search block and the lost password form (`label`), and the
+  `#andor` select of the search form (`select-name`). Each entry matches the start of the HTML of the node, so a
+  new unlabelled field in the theme itself is still reported.
+
+**Result on the test site** (same pages and browser as step 7): the axe findings `html-has-lang`, `label` and
+`select-name` are gone. The page tests still fail on three things, all of them design properties of the original,
+which this migration keeps:
+
+| Finding | Pages |
+| --- | --- |
+| Page scrolls horizontally at 375 px | all three |
+| axe `color-contrast` at 375 px (header menu links) | all three |
+| No skip link | the navigation test |
+
+12 of 19 tests pass, as before: the count did not change because each axe test also contained the contrast finding.
+`npm test` passes.
+
+**Not fixed on purpose:** the contrast, the fixed layout and the missing skip link. Each is a design change (colours,
+a responsive layout, new markup and CSS) and is a separate piece of work.
+
+**Playbook:** classify every page test finding as "theme", "core" or "design of the original". Fix the theme ones,
+list the core ones in `axeKnown` with a reason, and write the design ones down, as was done here.
