@@ -32,13 +32,14 @@ the build output.
 
 Every pull request is based on the branch of the previous one, so merge them in order.
 
-| Step | Branch | What |
-| --- | --- | --- |
-| 1 | `migrate/01-baseline` | Rename the package and start this logbook |
-| 2 | `migrate/02-assets` | Move the images, favicons, screenshot and credits into `src/` |
-| 3 | `migrate/03-styles` | Move the stylesheets into `src/css/` and make them build entries |
-| 4 | `migrate/04-front-end-layout` | Port `theme.html` and the block zone partials, link the bundles, replace the template skeleton |
-| 5 | `migrate/05-admin-and-site-closed` | Port `theme_admin.html`, its partial and the site closed template |
+| Step | Branch | What | Pull request |
+| --- | --- | --- | --- |
+| 1 | `migrate/01-baseline` | Rename the package and start this logbook | [#2](https://github.com/ImpressCMS/iTheme/pull/2) |
+| 2 | `migrate/02-assets` | Move the images, favicons, screenshot and credits into `src/` | [#3](https://github.com/ImpressCMS/iTheme/pull/3) |
+| 3 | `migrate/03-styles` | Move the stylesheets into `src/css/` and make them build entries | [#4](https://github.com/ImpressCMS/iTheme/pull/4) |
+| 4 | `migrate/04-front-end-layout` | Port `theme.html` and the block zone partials, link the bundles, replace the template skeleton | [#5](https://github.com/ImpressCMS/iTheme/pull/5) |
+| 5 | `migrate/05-admin-and-site-closed` | Port `theme_admin.html`, its partial and the site closed template | [#6](https://github.com/ImpressCMS/iTheme/pull/6) |
+| 6 | `migrate/06-docs` | Rewrite the README, finish this logbook | this pull request |
 
 ## Step 1: baseline
 
@@ -216,3 +217,61 @@ output test. Step 6 lists what has to be checked on a running site.
 **Playbook:** every template that links the theme stylesheet through a variable of the core
 (`$icms_themecss`) has to link the hashed bundle with a directive instead, in the theme layouts and in the module
 overrides. Search the templates for `style.css`, `themecss` and `imageurl` before and after the migration.
+
+## Step 6: documentation and wrap-up
+
+**What was done**
+
+- `README.md` rewritten for iTheme: what it is, how to install, build and check it. The text of the Easel template
+  (use this template, adding a framework, the skeleton, the admin theme how-to) was removed because it does not apply
+  to this repository; it remains in the Easel repository. The header banner `easel-github-header-banner.png` was
+  removed with it, and the badges point to this repository.
+- This logbook completed with the overview below.
+
+### Where every file of the original went
+
+| Original (`htdocs/themes/iTheme`) | Here | Built to |
+| --- | --- | --- |
+| `theme.html` | `src/theme.html` | `theme.html` |
+| `theme_admin.html` | `src/theme_admin.html` | `theme_admin.html` |
+| `blockszone.html`, `centerblocks.html`, `centerblocks_admin.html` | `src/templates/*.html.tpl` | `templates/*.html.tpl` |
+| `modules/system/system_siteclosed.html` | `src/modules/system/system_siteclosed.html` | `modules/system/system_siteclosed.html` |
+| `layout.css`, `blocks.css`, `content.css`, `style.css` | `src/css/` | `assets/style-<hash>.css` |
+| `style_admin.css` (and its imports) | `src/css/style_admin.css` | `assets/style_admin-<hash>.css` |
+| `rtl/*.css` | `src/css/rtl/` | `assets/style-<hash>.css` (the second one) |
+| `img/*`, `icons/*`, `shot.gif`, `README.txt` | `src/img/`, `src/icons/`, `src/shot.gif`, `src/README.txt` | same paths |
+| `index.html` in every folder | not migrated | none |
+
+### Contrast
+
+See step 4. Five colour pairs of the original design are below WCAG 2.1 AA. They are informational in
+`tests/contrast.config.mjs`; remove `informational` from a pair once its colour is fixed.
+
+### Still to do
+
+These are things that this migration did not do or could not check.
+
+1. **Install the built theme in ImpressCMS and look at it.** Nothing was rendered by ImpressCMS. Check the website,
+   the administration and the "site closed" page, with a left-to-right and a right-to-left language, with and
+   without side blocks, and compare with the original theme.
+2. **Check the Smarty version.** `theme_admin.html` uses `<{php}>`.
+3. **License.** `LICENSE` is the MIT license of the Easel template. `src/README.txt` says that the theme adopts the
+   license of the ImpressCMS project. Decide which one applies to this repository.
+4. **Right-to-left administration.** There never was a stylesheet for it, see step 5.
+5. **The contrast findings** and the missing skip link, which the page tests expect.
+6. **Duplication in `rtl/`.** The four right-to-left stylesheets are full copies of the left-to-right ones with a few
+   properties swapped. Logical properties (`margin-inline-start`) would remove the copies, but that is a rewrite of
+   the CSS.
+7. **Inlined images.** Vite inlines the background images in each bundle; the files in `img/` are copied as well. The
+   duplicates can be removed once nothing but the CSS uses them.
+
+### Summary playbook for another classic theme
+
+1. Create the repository from the Easel template; set `name` in `package.json`. (step 1)
+2. Copy the static files; leave out the directory-guard `index.html` files. (step 2)
+3. Copy the stylesheets and add each one that a layout links to `entries`; fix the `url()` paths. (step 3)
+4. Copy the layout and the partials, put the partials in `src/templates/*.html.tpl`, replace the stylesheet links
+   with directives and fix the `includeq` paths; remove the skeleton of the template; adapt the contrast pairs and the
+   output test. (step 4)
+5. Do the same for the administration layout and every module override that links the theme stylesheet. (step 5)
+6. Build, install on a site, compare with the original. (step 6)
