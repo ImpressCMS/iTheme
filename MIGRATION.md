@@ -39,7 +39,8 @@ Every pull request is based on the branch of the previous one, so merge them in 
 | 3 | `migrate/03-styles` | Move the stylesheets into `src/css/` and make them build entries | [#4](https://github.com/ImpressCMS/iTheme/pull/4) |
 | 4 | `migrate/04-front-end-layout` | Port `theme.html` and the block zone partials, link the bundles, replace the template skeleton | [#5](https://github.com/ImpressCMS/iTheme/pull/5) |
 | 5 | `migrate/05-admin-and-site-closed` | Port `theme_admin.html`, its partial and the site closed template | [#6](https://github.com/ImpressCMS/iTheme/pull/6) |
-| 6 | `migrate/06-docs` | Rewrite the README, finish this logbook | this pull request |
+| 6 | `migrate/06-docs` | Rewrite the README, finish this logbook | [#7](https://github.com/ImpressCMS/iTheme/pull/7) |
+| 7 | `migrate/07-verification` | Install on a test site, compare with the original, log the findings | this pull request |
 
 ## Step 1: baseline
 
@@ -251,9 +252,8 @@ See step 4. Five colour pairs of the original design are below WCAG 2.1 AA. They
 
 These are things that this migration did not do or could not check.
 
-1. **Install the built theme in ImpressCMS and look at it.** Nothing was rendered by ImpressCMS. Check the website,
-   the administration and the "site closed" page, with a left-to-right and a right-to-left language, with and
-   without side blocks, and compare with the original theme.
+1. **Check the rest on a running site.** The website was checked in step 7. The administration, the "site closed"
+   page, a right-to-left language and centre blocks were not; see "Not checked" in step 7.
 2. **Check the Smarty version.** `theme_admin.html` uses `<{php}>`.
 3. **License.** `LICENSE` is the MIT license of the Easel template. `src/README.txt` says that the theme adopts the
    license of the ImpressCMS project. Decide which one applies to this repository.
@@ -275,3 +275,65 @@ These are things that this migration did not do or could not check.
    output test. (step 4)
 5. Do the same for the administration layout and every module override that links the theme stylesheet. (step 5)
 6. Build, install on a site, compare with the original. (step 6)
+
+## Step 7: verification on a test site
+
+**Goal:** see the built theme in a running ImpressCMS and compare it with the original.
+
+**Setup (2026-10-11)**
+
+- The theme was built straight into the themes folder of a local test site:
+  `ICMS_THEME_OUT_DIR=<site>/themes/iTheme npm run build`. The site already had `iTheme` as its active theme and a copy
+  of the original theme next to it (`iTheme-original`).
+- The site was not changed: no settings, no login.
+
+**What was checked and the result**
+
+| Check | Result |
+| --- | --- |
+| The website loads the new theme | Yes: `theme.html` links `themes/iTheme/assets/style-<hash>.css`, the page looks like the original |
+| Computed styles and position of all 132 elements of the home page, new CSS against the original `style.css` | No differences, except `background-position` `0px` against `0%`, which is the same value written differently (the CSS minifier rewrites `top right`) |
+| The same comparison for the right-to-left bundle against `rtl/style.css` and for the administration bundle against `style_admin.css` | No differences (same exception). This compares the CSS on the home page, not a right-to-left or administration page |
+| `img/` (6 files), `icons/` (2 files) and `shot.gif` | All served (HTTP 200); the logo and the favicons are the ones linked in the page |
+| Console | No errors |
+
+The comparison swaps the stylesheet of the page for the original one in the browser and compares `getComputedStyle()`
+and `getBoundingClientRect()` of every element. It proves that the bundling, the `@import` handling and the `url()`
+paths did not change the CSS. It does not compare the templates, because the original theme could not be selected on
+the test site (only one theme is allowed).
+
+**Page tests** (`npm run test:pages`, Edge: `ICMS_TEST_BROWSER=msedge`, against `/`, `/user.php` and `/search.php`):
+12 of 19 pass. The seven that fail are properties of the original design, not of the migration:
+
+| Finding | Where | Cause |
+| --- | --- | --- |
+| No skip link | all pages | The original has none |
+| Page scrolls horizontally at 375 px: 5 px (home), 80 px (login), 205 px (search) | all pages, only at 375 px | The layout has fixed widths and is not responsive |
+| axe `html-has-lang` (serious) | all pages | `theme.html` sets `xml:lang` but not `lang` on `<html>` |
+| axe `label` (critical) | login block, search block | Fields without a label; the markup comes from the blocks of the core |
+| axe `select-name` (critical) | search page | `#andor` has no accessible name; core markup |
+| axe `color-contrast` (serious) | header menu links, 375 px | The known contrast pairs of step 4 |
+
+The `label` and `select-name` findings come from block and module templates of the core. According to the README
+they belong in `axeKnown` in `tests/pages/config.mjs` with a reason, or in a template override. `html-has-lang` is in
+`theme.html` and is a one-attribute fix.
+
+**Not checked**
+
+- The administration (`theme_admin.html`, including the `<{php}>` block and the `centerblocks_admin` partial).
+  Logging in was out of scope.
+- The "site closed" page, including the change from `$icms_themecss` to the bundle directive (step 5). It can only
+  be seen with the site closed.
+- A real right-to-left language.
+- Pages with blocks in the centre zones (`centerblocks.html.tpl`); the test site had none.
+- The template output of the original theme next to the new one (see above).
+
+**Playbook**
+
+1. Build into the themes folder of a test site with `ICMS_THEME_OUT_DIR`; it does not empty the folder.
+2. Keep the original theme next to it, so the stylesheet of the page can be swapped and the computed styles compared.
+   This is quick and finds every path and import error.
+3. Run the page tests before the migration on the original, so that findings of the design are separated from
+   findings of the migration. This run was done only after it, so the claim "these are in the original" rests on the
+   markup and the CSS, not on a baseline run.
+4. Chrome is not installed everywhere; Edge works (`ICMS_TEST_BROWSER=msedge`).
