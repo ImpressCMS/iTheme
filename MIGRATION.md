@@ -36,6 +36,7 @@ Every pull request is based on the branch of the previous one, so merge them in 
 | --- | --- | --- |
 | 1 | `migrate/01-baseline` | Rename the package and start this logbook |
 | 2 | `migrate/02-assets` | Move the images, favicons, screenshot and credits into `src/` |
+| 3 | `migrate/03-styles` | Move the stylesheets into `src/css/` and make them build entries |
 
 ## Step 1: baseline
 
@@ -77,3 +78,39 @@ template's own `theme.html` still uses them.
 **Playbook:** the plugin's `static` option covers `img/`, `images/`, `icons/`, `fonts/`, `language/`, `shot.*`,
 `favicon.*` and `*.txt`. Anything else that has to be copied as it is (other folder names) needs an entry in `static`
 in `vite.config.js`. Leave out the directory-guard `index.html` files.
+
+## Step 3: stylesheets
+
+**Goal:** get the CSS of the original theme into `src/css/` and let Vite bundle it.
+
+**What was done**
+
+- `layout.css`, `blocks.css`, `content.css`, `style.css` and `style_admin.css` copied to `src/css/`, and the four
+  files of `rtl/` to `src/css/rtl/`. Line endings changed from CRLF to LF (see `.editorconfig`); the content is
+  otherwise unchanged.
+- The `@import url(layout.css)`, `@import url(blocks.css)` and `@import url(content.css)` lines in `style.css`,
+  `style_admin.css` and `rtl/style.css` were kept. Vite follows them and writes one bundle per entry, so the
+  browser no longer makes four requests per stylesheet.
+- The paths in `url(...)` had to change, because Vite resolves them relative to the CSS file and not relative to the
+  folder of the built theme: `url(img/x.jpg)` became `url(../img/x.jpg)` in `src/css/`, and `url(../img/x.gif)`
+  became `url(../../img/x.gif)` in `src/css/rtl/`.
+- `vite.config.js`: `css/style.css`, `css/style_admin.css` and `css/rtl/style.css` added to `entries`. The three
+  stay separate entries because the layout picks one of them: the website, the administration and right-to-left
+  languages each have their own stylesheet. `css/rtl/style.css` is not imported by `css/style.css`.
+
+**What the build does with the CSS**
+
+- The images that the CSS refers to are small (all under Vite's `assetsInlineLimit` of 4 kB), so Vite inlines them
+  as `data:` URLs. Each bundle therefore contains its own copy. The files are still copied to `img/` as well, because
+  `logo.png` is used by the templates.
+- The three bundles are named `assets/style-<hash>.css` (twice) and `assets/style_admin-<hash>.css`: two entries
+  with the same file name get different hashes, so they do not collide.
+
+**Not yet done:** nothing links the bundles yet. The template's `theme.html` still links `js/theme.js`, which
+imports the template's own `theme.css`. They are replaced in step 4, together with the contrast check that reads
+that file.
+
+**Result:** `npm test` passes (27 unit tests, contrast check, build, 5 output tests).
+
+**Playbook:** classic themes import their partial stylesheets with `@import`; keep that, add one entry for every
+stylesheet that a layout links, and fix every `url()` that is relative to the old folder.
