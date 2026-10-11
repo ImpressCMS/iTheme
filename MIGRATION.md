@@ -37,6 +37,7 @@ Every pull request is based on the branch of the previous one, so merge them in 
 | 1 | `migrate/01-baseline` | Rename the package and start this logbook |
 | 2 | `migrate/02-assets` | Move the images, favicons, screenshot and credits into `src/` |
 | 3 | `migrate/03-styles` | Move the stylesheets into `src/css/` and make them build entries |
+| 4 | `migrate/04-front-end-layout` | Port `theme.html` and the block zone partials, link the bundles, replace the template skeleton |
 
 ## Step 1: baseline
 
@@ -114,3 +115,62 @@ that file.
 
 **Playbook:** classic themes import their partial stylesheets with `@import`; keep that, add one entry for every
 stylesheet that a layout links, and fix every `url()` that is relative to the old folder.
+
+## Step 4: the layout of the website
+
+**Goal:** the original `theme.html` and its partials run on the pipeline, and the skeleton of the Easel template is
+gone.
+
+**What was done**
+
+- `theme.html` of the original copied to `src/theme.html` (LF line endings). The markup is unchanged, including the
+  XHTML 1.1 doctype and the `THEME_*` language constants of the header menu. Two things changed:
+  - The stylesheet link, `<link ... href="<{$icms_imageurl}><{if $icms_rtl}>rtl/<{/if}>style.css" />`, became
+    `<{if $icms_rtl}><!-- vite: css/rtl/style.css --><{else}><!-- vite: css/style.css --><{/if}>`. The plugin
+    replaces each directive with the `<link>` of the hashed bundle, so the template links one of two bundles, just as
+    the original chose between `style.css` and `rtl/style.css`.
+  - The `includeq` paths. The partials moved from the theme root to `templates/` and got the `.html.tpl` extension
+    of the Easel conventions: `$theme_name/blockszone.html` became `$theme_name/templates/blockszone.html.tpl`, and
+    the same for `centerblocks.html`. The build does not touch `include`/`includeq` paths, so these have to match the
+    location in `dist/` exactly.
+- `blockszone.html` and `centerblocks.html` copied to `src/templates/blockszone.html.tpl` and
+  `src/templates/centerblocks.html.tpl`, content unchanged.
+- Removed the skeleton of the Easel template, which the original theme replaces: `src/templates/header.html.tpl`,
+  `footer.html.tpl` and the skeleton's `blockszone.html.tpl`, `src/css/theme.css`, `src/js/theme.js`,
+  `src/img/favicon.svg`, `src/img/logo.svg` and the static mockup `src/index.html`. The original draws its header and
+  footer inside `theme.html` and has no JavaScript, so there is no `js/` entry: the template's `<script>` tag is
+  gone from `theme.html`.
+- `vite.config.js`: removed the `js/theme.js` entry and the `exclude` for the mockup.
+- `tests/dist.test.mjs`: the test that expected a script bundle now expects the two stylesheet links of the
+  website (one for right-to-left languages, one for the others) and no script. The mockup is no longer ignored.
+- `tests/contrast.config.mjs`: see below.
+
+**Contrast**
+
+The Easel contrast check reads the palette from custom properties in one stylesheet. The original iTheme has literal
+colours, so the pairs are literal colours of `src/css/style.css`. Five of the eight pairs do not reach WCAG 2.1 AA
+(4.5:1 for text): links on hover (`#8e8e8e` on white, 3.28), the header menu (`#666` on `#8bbcdd`, 2.83, and `#fff`
+on hover, 2.03), the footer text (`#666` on `#59b9e4`, 2.59) and the footer links on hover (`#fff`, 2.21). The
+migration keeps the original design, so these five are marked `informational`: they are printed by
+`npm run check:contrast`, but do not fail the build. Fixing the colours is a design change and not part of this
+migration.
+
+**Not done**
+
+- `npm run dev` has no mockup to show any more (the original has none). The theme can only be tried in an
+  ImpressCMS site, see `ICMS_THEME_OUT_DIR` in the README.
+- The page tests (`npm run test:pages`) were not run: they need a running site. They also expect a skip link as the
+  first focusable element, which the original theme does not have.
+- The administration layout and the "site closed" page are still missing: step 5.
+
+**Result:** `npm test` passes. `dist/theme.html` links `assets/style-<hash>.css` for left-to-right and
+`assets/style-<other hash>.css` for right-to-left languages.
+
+**Playbook**
+
+1. Replace the template's skeleton, do not merge into it.
+2. Put every partial that `include`/`includeq` loads in `src/templates/` with the extension `.html.tpl` and update
+   the paths; they are the only paths the build does not rewrite.
+3. Replace the stylesheet `<link>` with a `<!-- vite: ... -->` directive, one per entry, inside the same
+   `{if}` as before.
+4. Check the pairs in `tests/contrast.config.mjs` against the real colours of the theme.

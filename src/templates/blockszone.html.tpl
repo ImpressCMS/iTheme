@@ -1,12 +1,11 @@
+
 <{if $blocks}>
-<div class="zone">
-    <{foreach from=$blocks item=block}>
-    <section class="block block-<{$block.module}>"<{if $block.title}> aria-labelledby="block-<{$block.id}>-title"<{/if}>>
-        <{if $block.title}>
-        <h2 class="block-title" id="block-<{$block.id}>-title"><{$block.title}></h2>
-        <{/if}>
-        <div class="block-content"><{$block.content}></div>
-    </section>
-    <{/foreach}>
-</div>
+	<div class="xo-blockszone x2-secondary<{if $zoneClass}> <{$zoneClass}><{/if}>"<{if $zoneId}> id="<{$zoneId}>"<{/if}>>
+	<{foreach from=$blocks item=block}>
+	<div class="xo-block <{$block.module}>">
+		<{if $block.title}><div class="xo-blocktitle"><h3><{$block.title}></h3></div><{/if}>
+		<div class="xo-blockcontent"><{$block.content}></div>
+	</div>
+	<{/foreach}>
+	</div>
 <{/if}>

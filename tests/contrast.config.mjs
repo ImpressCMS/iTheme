@@ -5,25 +5,23 @@
 export const TEXT = 4.5
 export const UI = 3
 
-export const stylesheet = 'src/css/theme.css'
+export const stylesheet = 'src/css/style.css'
 
 /**
  * [foreground, background, minimum ratio, description, options]
  * options.external: a literal colour that does not come from the stylesheet (a framework, a module)
  * options.informational: report the ratio, but do not fail on it (decorative colours)
+ *
+ * The colours are the literal colours of the original iTheme. The pairs that do not reach the minimum are
+ * informational: the migration keeps the design as it was, see "Contrast" in MIGRATION.md.
  */
 export const pairs = [
-    ['var(--theme-text)', 'var(--theme-background)', TEXT, 'body text'],
-    ['var(--theme-text)', 'var(--theme-surface)', TEXT, 'text in blocks'],
-    ['var(--theme-muted)', 'var(--theme-background)', TEXT, 'muted text'],
-    ['var(--theme-muted)', 'var(--theme-surface)', TEXT, 'footer text'],
-    ['var(--theme-link)', 'var(--theme-background)', TEXT, 'links'],
-    ['var(--theme-link)', 'var(--theme-surface)', TEXT, 'links in blocks and the footer'],
-    ['var(--theme-on-accent)', 'var(--theme-accent)', TEXT, 'buttons and the skip link'],
-    ['var(--theme-header-text)', 'var(--theme-header-background)', TEXT, 'site name'],
-    ['var(--theme-header-muted)', 'var(--theme-header-background)', TEXT, 'slogan'],
-    ['var(--theme-focus)', 'var(--theme-background)', UI, 'focus outline'],
-    ['var(--theme-focus)', 'var(--theme-surface)', UI, 'focus outline in blocks'],
-    ['var(--theme-focus)', 'var(--theme-header-background)', UI, 'focus outline in the header'],
-    ['var(--theme-border)', 'var(--theme-background)', UI, 'block borders (decorative)', { informational: true }],
+    ['#000000', '#ffffff', TEXT, 'body text'],
+    ['#666666', '#ffffff', TEXT, 'links'],
+    ['#8e8e8e', '#ffffff', TEXT, 'links on hover', { informational: true }],
+    ['#666666', '#8bbcdd', TEXT, 'links in the header menu', { informational: true }],
+    ['#ffffff', '#8bbcdd', TEXT, 'links in the header menu on hover', { informational: true }],
+    ['#666666', '#59b9e4', TEXT, 'footer text', { informational: true }],
+    ['#333333', '#59b9e4', TEXT, 'links in the footer'],
+    ['#ffffff', '#59b9e4', TEXT, 'links in the footer on hover', { informational: true }],
 ]

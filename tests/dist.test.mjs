@@ -9,13 +9,12 @@ import fg from 'fast-glob'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const src = path.join(root, 'src')
 const dist = path.join(root, 'dist')
-const mockups = ['index.html']
 
-const sourceTemplates = fg.sync(['**/*.html', '**/*.tpl'], { cwd: src, ignore: mockups })
+const sourceTemplates = fg.sync(['**/*.html', '**/*.tpl'], { cwd: src })
 const builtTemplates = fg.sync(['**/*.html', '**/*.tpl'], { cwd: dist })
 const read = (file) => readFileSync(path.join(dist, file), 'utf8')
 
-test('dist contains every template and no mockups', () => {
+test('dist contains every template', () => {
     assert.ok(existsSync(path.join(dist, 'theme.html')), 'dist/theme.html is missing')
     assert.deepEqual([...builtTemplates].sort(), [...sourceTemplates].sort())
 })
@@ -37,11 +36,13 @@ test('every file referenced through $icms_imageurl exists', () => {
     assert.deepEqual(missing, [])
 })
 
-test('the theme links its bundles', () => {
+test('the theme links the stylesheets of the website and of right-to-left languages', () => {
     const theme = read('theme.html')
+    const stylesheet = /<link rel="stylesheet" href="<\{\$icms_imageurl\}>assets\/style-[\w-]+\.css">/g
 
-    assert.match(theme, /<link rel="stylesheet" href="<\{\$icms_imageurl\}>assets\/[\w-]+\.css">/)
-    assert.match(theme, /<script type="module" src="<\{\$icms_imageurl\}>assets\/[\w-]+\.js"><\/script>/)
+    assert.equal(theme.match(stylesheet)?.length, 2)
+    assert.match(theme, /<\{if \$icms_rtl\}><link rel="stylesheet"/)
+    assert.doesNotMatch(theme, /<script type="module"/)
 })
 
 test('the screenshot and images are copied and the manifest is removed', () => {
