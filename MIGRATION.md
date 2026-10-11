@@ -38,6 +38,7 @@ Every pull request is based on the branch of the previous one, so merge them in 
 | 2 | `migrate/02-assets` | Move the images, favicons, screenshot and credits into `src/` |
 | 3 | `migrate/03-styles` | Move the stylesheets into `src/css/` and make them build entries |
 | 4 | `migrate/04-front-end-layout` | Port `theme.html` and the block zone partials, link the bundles, replace the template skeleton |
+| 5 | `migrate/05-admin-and-site-closed` | Port `theme_admin.html`, its partial and the site closed template |
 
 ## Step 1: baseline
 
@@ -174,3 +175,44 @@ migration.
 3. Replace the stylesheet `<link>` with a `<!-- vite: ... -->` directive, one per entry, inside the same
    `{if}` as before.
 4. Check the pairs in `tests/contrast.config.mjs` against the real colours of the theme.
+
+## Step 5: the administration and the "site closed" page
+
+**Goal:** the remaining three templates of the original run on the pipeline.
+
+**What was done**
+
+- `theme_admin.html` copied to `src/theme_admin.html`. Changed, as in step 4:
+  - the theme stylesheet link became `<!-- vite: css/style_admin.css -->`;
+  - the `includeq` paths became `$theme_name/templates/blockszone.html.tpl` and
+    `$theme_name/templates/centerblocks_admin.html.tpl`.
+- `centerblocks_admin.html` copied to `src/templates/centerblocks_admin.html.tpl`, unchanged.
+- `modules/system/system_siteclosed.html` copied to `src/modules/system/system_siteclosed.html`. Its theme
+  stylesheet `<link href="<{$icms_themecss}>">` became `<!-- vite: css/style.css -->`. The core fills `icms_themecss`
+  with the URL of `style.css` in the theme folder (`xoops_getcss()`), and that file does not exist any more: the
+  stylesheet is now a hashed bundle in `assets/`. The core does assign `icms_imageurl` on this page
+  (`htdocs/include/site-closed.php`), so the URL prefix that the plugin writes resolves. The `$icms_style` link of the
+  core and the rest of the template (it still uses the `xoops_*` variables) are unchanged.
+
+**Things in the original that were kept, or that did not work there either**
+
+- The core stylesheet `modules/system/style[_rtl].css` is still linked from `theme_admin.html`, before the theme
+  stylesheet. It belongs to the system module and is not part of the theme.
+- The original linked `rtl/style_admin.css` for right-to-left languages, but the `rtl/` folder of the original has no
+  such file: the administration of a right-to-left language had no theme stylesheet. The migrated template links
+  `css/style_admin.css` for every language. That is a fix and not a faithful copy, but a link that returns a 404
+  cannot be intended. A real right-to-left administration stylesheet is still to be written.
+- `theme_admin.html` starts with a `<{php}>` block that moves a redirect message from the session to a template
+  variable. The template minifier only joins its lines; the PHP is unchanged. `<{php}>` is not available in Smarty 3
+  and later, so this depends on the Smarty version of the ImpressCMS release.
+- `<{ if $modname != '' }>` (with spaces inside the delimiters) is kept as it was and is preserved by the minifier.
+
+**Result:** `npm test` passes; the build writes six templates (`theme.html`, `theme_admin.html`, two zone partials,
+the admin partial and the site closed template). No template is copied unminified (no warnings in the build).
+
+**Not verified:** none of the templates were rendered by ImpressCMS in this migration, only built and checked by the
+output test. Step 6 lists what has to be checked on a running site.
+
+**Playbook:** every template that links the theme stylesheet through a variable of the core
+(`$icms_themecss`) has to link the hashed bundle with a directive instead, in the theme layouts and in the module
+overrides. Search the templates for `style.css`, `themecss` and `imageurl` before and after the migration.
