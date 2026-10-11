@@ -31,4 +31,15 @@ export const axeExclude = []
  * Known axe findings that come from content or from the core, not from the theme templates.
  * Each entry: { rule: 'axe rule id', html: /pattern for the HTML of the node/, reason: 'why it is not fixed here' }
  */
-export const axeKnown = []
+export const axeKnown = [
+    {
+        rule: 'label',
+        html: /^<input [^>]*class="uname"|^<input type="password" name="pass"|^<input type="text" name="query"|^<input [^>]*id="query"|^<input type="text" name="email"/,
+        reason: 'The login block, the search block and the lost password form of the core have no labels; fix them in a template override',
+    },
+    {
+        rule: 'select-name',
+        html: /^<select [^>]*id="andor"/,
+        reason: 'The search form of the search module has no label for the "match" select; fix it in a module template override',
+    },
+]
