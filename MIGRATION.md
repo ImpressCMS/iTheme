@@ -35,6 +35,7 @@ Every pull request is based on the branch of the previous one, so merge them in 
 | Step | Branch | What |
 | --- | --- | --- |
 | 1 | `migrate/01-baseline` | Rename the package and start this logbook |
+| 2 | `migrate/02-assets` | Move the images, favicons, screenshot and credits into `src/` |
 
 ## Step 1: baseline
 
@@ -50,3 +51,29 @@ Every pull request is based on the branch of the previous one, so merge them in 
 **Why:** the rename is a separate, trivial change, so that the later pull requests only contain theme code.
 
 **Playbook:** set `name` in `package.json` to the folder name of the theme before anything else.
+
+## Step 2: static assets
+
+**Goal:** get the files that need no processing into `src/`, where the plugin copies them to the theme folder.
+
+**What was done**
+
+- `img/*.jpg`, `img/*.gif`, `img/logo.png` of the original theme copied to `src/img/` (7 files).
+- `icons/favicon.ico` and `icons/icon.png` copied to `src/icons/`.
+- `shot.gif` replaced the placeholder screenshot in `src/shot.gif`.
+- `README.txt` (the credits and the transfer of the rights to ImpressCMS) copied to `src/README.txt`, with LF line
+  endings like every other file in the repository.
+
+**What was left out:** the `index.html` files in `img/`, `icons/`, `modules/` and `modules/system/` of the original
+(`<script>history.go(-1);</script>`). They only keep the folders from being listed by the web server. The plugin
+treats every `*.html` as a Smarty template and the build would copy them as such; the same protection belongs in the
+web server configuration.
+
+**Result:** `npm test` passes; `dist/` contains `img/`, `icons/`, `shot.gif` and `README.txt`.
+
+**Not yet cleaned up:** the template's `src/img/favicon.svg` and `src/img/logo.svg` stay until step 4, because the
+template's own `theme.html` still uses them.
+
+**Playbook:** the plugin's `static` option covers `img/`, `images/`, `icons/`, `fonts/`, `language/`, `shot.*`,
+`favicon.*` and `*.txt`. Anything else that has to be copied as it is (other folder names) needs an entry in `static`
+in `vite.config.js`. Leave out the directory-guard `index.html` files.
